@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Refresh &amp; Content Opportunity Scoring — A Decision-Support Model</title>
+<style>
+  :root {
+    --ink: #1B2430;
+    --paper: #FAF8F4;
+    --muted: #5B6472;
+    --accent: #3D7068;
+    --line: #E8E4DC;
+    --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', Palatino, serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 72px 24px 120px;
+  }
+
+  header.masthead {
+    margin-bottom: 64px;
+  }
+
+  .kicker {
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+    margin-bottom: 18px;
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-size: 2.35rem;
+    line-height: 1.18;
+    font-weight: 400;
+    margin: 0 0 24px;
+    color: var(--ink);
+    max-width: 22ch;
+  }
+
+  .meta-line {
+    font-size: 14px;
+    color: var(--muted);
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+    margin-top: 32px;
+  }
+
+  .abstract {
+    font-family: var(--serif);
+    font-size: 1.08rem;
+    line-height: 1.65;
+    color: var(--ink);
+    background: #F3F0E8;
+    border-left: 3px solid var(--accent);
+    padding: 24px 28px;
+    margin: 40px 0 0;
+  }
+
+  .abstract .label {
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  section {
+    margin: 64px 0;
+  }
+
+  h2 {
+    font-family: var(--serif);
+    font-size: 1.5rem;
+    font-weight: 400;
+    margin: 0 0 22px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  h3 {
+    font-family: var(--sans);
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin: 28px 0 10px;
+    color: var(--ink);
+  }
+
+  p { margin: 0 0 16px; max-width: 66ch; }
+
+  strong { font-weight: 600; }
+
+  code {
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 0.87em;
+    background: #EFEBE2;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  ul, ol { margin: 0 0 16px; padding-left: 22px; max-width: 62ch; }
+  li { margin-bottom: 8px; }
+
+  .hero-result {
+    display: flex;
+    gap: 40px;
+    align-items: baseline;
+    margin: 28px 0 8px;
+    flex-wrap: wrap;
+  }
+
+  .hero-num {
+    font-family: var(--serif);
+    font-size: 3.2rem;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .hero-num .vs {
+    font-size: 1.6rem;
+    color: var(--muted);
+    margin: 0 10px;
+  }
+
+  .hero-label {
+    font-size: 14px;
+    color: var(--muted);
+    max-width: 30ch;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0 8px;
+    font-size: 15px;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  th {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  tr.highlight td {
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .callout {
+    background: #F3F0E8;
+    padding: 18px 22px;
+    border-radius: 2px;
+    font-size: 15px;
+    margin: 24px 0;
+  }
+
+  .callout .cal-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .reason-codes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 20px 0;
+  }
+
+  @media (max-width: 560px) {
+    .reason-codes { grid-template-columns: 1fr; }
+  }
+
+  .rc-card {
+    border: 1px solid var(--line);
+    padding: 16px 18px;
+  }
+
+  .rc-card .rc-name {
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 12px;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .rc-card p { margin: 0; font-size: 14px; }
+
+  figure {
+    margin: 32px 0;
+  }
+
+  figure img {
+    width: 100%;
+    border: 1px solid var(--line);
+    display: block;
+  }
+
+  figcaption {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  .repro-list {
+    list-style: none;
+    padding: 0;
+  }
+
+  .repro-list li {
+    font-size: 14.5px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .repro-list code { white-space: nowrap; }
+
+  footer {
+    margin-top: 80px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    font-size: 13.5px;
+    color: var(--muted);
+  }
+
+  footer a { color: var(--accent); }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="kicker">Research Note · Search Intelligence Lane 2</div>
+    <h1>Refresh &amp; Content Opportunity Scoring: A Decision-Support Model for Content Review Prioritization</h1>
+    <div class="meta-line">FlyRank ML Internship Capstone — Lane 2, Refresh / Content Opportunity Scoring</div>
+
+    <div class="abstract">
+      <span class="label">ABSTRACT</span>
+      This paper asks which content pages a review team should prioritize refreshing first, given limited review capacity. We built and validated a Random Forest model against a simple hand-written baseline rule on FlyRank's starter search-performance dataset (30,000 pages, 32 clients). Under an honest client-holdout validation split, the model achieved a Precision@50 of 0.72 versus the baseline's 0.62 — a directional, decision-support improvement, not a causal claim. We translate this into a ranked action playbook with reason codes, human-review requirements, and explicit no-go cases for real-world use.
+    </div>
+  </header>
+
+  <section>
+    <h2>1. Introduction</h2>
+    <p><strong>Decision.</strong> Which content pages a review team should prioritize refreshing first, given limited time and review capacity.</p>
+    <p><strong>Who acts on it.</strong> A content strategist or reviewer working through a ranked queue, taking the top of the list first.</p>
+    <p><strong>Cost of a wrong call.</strong> The cost cuts both ways. A false positive wastes limited reviewer time on a page that didn't need attention. A false negative leaves a genuinely declining page unaddressed, losing visibility until the next cycle. Because review capacity is fixed and small relative to total inventory, precision at the top of the list matters more than overall accuracy.</p>
+  </section>
+
+  <section>
+    <h2>2. Data</h2>
+    <p><strong>Source.</strong> FlyRank ML Internship starter dataset — 30,000 pages across 32 pseudonymized clients, aggregated over a trailing 90-day window.</p>
+    <p><strong>Unit of analysis.</strong> One content item (page), for one client.</p>
+    <p><strong>Label.</strong> <code>is_declining_label</code>, defined as <code>trend_direction == "down"</code> — impressions dropped more than 20% comparing the most recent 30 days to the prior 30 days, both windows sitting inside the same 90-day snapshot. This is a proxy for "needs attention," not verified ground truth, and it is worth being precise about what kind of label this is: it is retrospective, not a genuine forward-looking outcome. Every feature used to predict it (<code>impressions_90d</code>, <code>avg_position</code>, etc.) is a full 90-day aggregate that overlaps the same window the label is computed from — this is standard for the starter dataset's teaching purpose, but it means the starter-slice model result should be read as pattern recognition on a snapshot, not true future prediction. A genuinely forward-looking version of this test was run separately at warehouse scale in the data contract stage (Section 3, below) using March features to predict an April outcome, and that version held up (AUC 0.870 honest vs. 1.0 when a leaked feature was deliberately added).</p>
+    <p><strong>Features.</strong> <code>impressions_90d</code>, <code>days_since_last_update</code>, <code>avg_position</code>, <code>ctr</code>, <code>word_count</code>, <code>content_age_days</code> — all knowable at decision time.</p>
+    <p><strong>Excluded.</strong> <code>trend_direction</code> and <code>trend_pct</code> (label-derived, leakage risk), and any FlyRank product flags such as <code>health_score</code> — decision outputs, not raw observations.</p>
+    <div class="callout">
+      <span class="cal-label">Data limits</span>
+      This is a 30,000-row teaching slice, not the full ~79 million-row warehouse. Client history depth is unbalanced across the panel. These results have not been re-validated at full warehouse scale.
+    </div>
+  </section>
+
+  <section>
+    <h2>3. Methodology</h2>
+
+    <h3>Task framing</h3>
+    <p>This is a ranking/scoring problem, not pure classification. The output is a priority order across pages, evaluated by Precision@K rather than accuracy — since only the top of the list gets acted on.</p>
+
+    <h3>Baseline rule</h3>
+    <p>A page qualifies if it is stale (≥180 days since last update) and still visible (≥500 impressions in 90 days). Its score is <code>impressions_90d</code> if both conditions hold, otherwise zero.</p>
+
+    <h3>Signal validation, before modeling</h3>
+    <p><strong>Staleness → decline rate: mixed.</strong> Decline rate rose from 51.2% (0–90 days, n=20,655) to 61.1% (91–180 days, n=9,171) — but dropped to 46.7% at 181–365 days (n=169), and the 365+ day bucket held only 5 rows. The defensible signal is "0–90 days vs. 91+ days," not a clean trend across every bucket.</p>
+
+    <figure>
+      <img src="figures/chart_staleness.png" alt="Bar chart of decline rate by staleness bucket, showing a mixed, non-monotonic pattern">
+      <figcaption>Decline rate is not monotonic across staleness buckets — the 181–365 day and 365+ buckets are also too small to trust on their own (n=169 and n=5).</figcaption>
+    </figure>
+
+    <p><strong>CTR vs. position tier: confirmed.</strong> CTR declined cleanly from 0.355 at page-one positions (n=8,633) to 0.055 in deep positions (n=879), matching expectation.</p>
+
+    <figure>
+      <img src="figures/chart_ctr.png" alt="Bar chart of CTR declining as position tier worsens">
+      <figcaption>CTR drops consistently as position worsens, with a healthy sample size in every tier.</figcaption>
+    </figure>
+
+    <h3>Model and validation design</h3>
+    <p>A Random Forest (200 trees, class-balanced) was compared against Logistic Regression and the baseline rule, using a <strong>client-holdout split</strong> — grouping by <code>client_id</code> rather than splitting rows at random. A model tested on the same client's pages it trained on can look artificially strong by memorizing client-specific quirks rather than learning a pattern that generalizes.</p>
+
+    <h3>Leakage audit</h3>
+    <p>None of the six features include <code>trend_direction</code> or <code>trend_pct</code>. Feature–label correlations were all modest (−0.164 to 0.090), consistent with genuine signal. A deliberate leakage experiment — adding a label-derived column built directly from the future value used in the label — pushed model AUC from an honest 0.870 to a perfect 1.0, confirming the leakage check itself works as intended.</p>
+  </section>
+
+  <section>
+    <h2>4. Results</h2>
+
+    <div class="hero-result">
+      <div class="hero-num">0.72 <span class="vs">vs</span> 0.62</div>
+      <div class="hero-label">Random Forest vs. baseline rule, Precision@50, same client-holdout test set</div>
+    </div>
+
+    <table>
+      <tr><th>Method</th><th>Precision@20</th><th>Precision@50</th></tr>
+      <tr><td>Baseline (hand rule)</td><td>0.50</td><td>0.62</td></tr>
+      <tr><td>Logistic Regression</td><td>0.65</td><td>0.66</td></tr>
+      <tr class="highlight"><td>Random Forest</td><td>0.75</td><td>0.72</td></tr>
+    </table>
+
+    <figure>
+      <img src="figures/chart_precision.png" alt="Bar chart comparing Precision at 50 across baseline, logistic regression, and random forest">
+      <figcaption>Random Forest leads on Precision@50, with Logistic Regression as a modest middle ground above the hand-written baseline.</figcaption>
+    </figure>
+
+    <p>Random Forest beat the baseline at both K values on the same test set — a consistent improvement, not a lucky top-20. A supplementary check reinforces this: the same model scored 0.900 Precision@50 under a naive random split, versus 0.720 under the honest client-holdout split. That gap confirms naive splits substantially overstate performance, and that 0.72 is the number worth trusting.</p>
+
+    <h3>What the model leans on</h3>
+    <p>Reported below as Random Forest's built-in <strong>impurity-based</strong> feature importance — this describes what the model uses when making splits, not a causal claim about which factor drives decline in the real world.</p>
+    <table>
+      <tr><th>Feature</th><th>Impurity-based importance</th></tr>
+      <tr><td>impressions_90d</td><td>0.279</td></tr>
+      <tr><td>avg_position</td><td>0.248</td></tr>
+      <tr><td>content_age_days</td><td>0.160</td></tr>
+      <tr><td>word_count</td><td>0.156</td></tr>
+      <tr><td>ctr</td><td>0.121</td></tr>
+      <tr><td>days_since_last_update</td><td>0.037</td></tr>
+    </table>
+
+    <figure>
+      <img src="figures/chart_importance.png" alt="Horizontal bar chart of Random Forest feature importances">
+      <figcaption>impressions_90d and avg_position dominate the model's splits; days_since_last_update contributes the least on its own.</figcaption>
+    </figure>
+
+    <p style="font-size:14px; color:var(--muted);">A stronger follow-up would compute permutation importance on the held-out split directly, rather than relying only on impurity-based importance from training.</p>
+
+    <h3>Where it's wrong</h3>
+    <p>16 of the model's top 50 picks were false positives — pages flagged high-risk that were not actually declining. These tended to share a pattern: relatively high <code>days_since_last_update</code> (often around 104 or 280 days) paired with middling <code>avg_position</code> (13–51). This suggests the model sometimes over-weights staleness–position combinations that don't reliably predict decline — notably, <code>days_since_last_update</code> carried the least importance of the six features, despite showing up repeatedly in the error cases.</p>
+  </section>
+
+  <section>
+    <h2>5. Limitations &amp; Honest Framing</h2>
+    <p>This is an observed, directional, decision-support result on a 30,000-row teaching slice — not a proven causal claim. Correlational patterns here do not establish that refreshing a flagged page <em>causes</em> recovery, and the model has not been validated against the full warehouse. One additional concentration worth flagging: a single client accounted for the majority of top-ranked pages in the baseline queue, a pattern worth monitoring in any real deployment to avoid the model's output being dominated by one account's data profile.</p>
+  </section>
+
+  <section>
+    <h2>6. Ranked Recommendations</h2>
+    <p>Every page is tagged with one of four reason codes, so a reviewer knows <em>why</em> a page is on the list — not just that it is.</p>
+
+    <div class="reason-codes">
+      <div class="rc-card">
+        <span class="rc-name">HIGH_RISK_STALE</span>
+        <p>Strong decline signal and the content is stale. Refresh directly.</p>
+      </div>
+      <div class="rc-card">
+        <span class="rc-name">HIGH_RISK_RECENT_UPDATE</span>
+        <p>Strong decline signal despite a recent update. Investigate for an external cause before touching the page.</p>
+      </div>
+      <div class="rc-card">
+        <span class="rc-name">MODERATE_RISK</span>
+        <p>Some risk signals present. Monitor and revisit next cycle.</p>
+      </div>
+      <div class="rc-card">
+        <span class="rc-name">LOW_RISK</span>
+        <p>No action needed at this time.</p>
+      </div>
+    </div>
+
+    <h3>Example output</h3>
+    <p>An anonymized excerpt from the ranked queue, illustrating the shape of the final output a reviewer would work through:</p>
+    <table>
+      <tr><th>Rank</th><th>Content ID</th><th>Score</th><th>Reason</th><th>Action</th></tr>
+      <tr><td>1</td><td>content_a1f9…</td><td>0.94</td><td>HIGH_RISK_STALE</td><td>Refresh</td></tr>
+      <tr><td>2</td><td>content_7c3e…</td><td>0.91</td><td>HIGH_RISK_RECENT_UPDATE</td><td>Investigate</td></tr>
+      <tr><td>3</td><td>content_dd08…</td><td>0.87</td><td>MODERATE_RISK</td><td>Monitor</td></tr>
+      <tr><td>4</td><td>content_45b1…</td><td>0.84</td><td>HIGH_RISK_STALE</td><td>Refresh</td></tr>
+      <tr><td>5</td><td>content_9e22…</td><td>0.81</td><td>MODERATE_RISK</td><td>Monitor</td></tr>
+    </table>
+
+    <div class="callout">
+      <span class="cal-label">Known imbalance</span>
+      In practice, <code>HIGH_RISK_RECENT_UPDATE</code> captured the large majority of high-risk pages (14,261 vs. 84 in <code>HIGH_RISK_STALE</code>) — not because most declining pages were genuinely just updated, but because the 180-day staleness cutoff is strict and most high-risk pages simply haven't crossed it yet. A future version should treat staleness as a continuous weight rather than a single threshold.
+    </div>
+
+    <h3>Intended use</h3>
+    <p>Triage for a content strategist working through a limited review cycle. This narrows a large inventory to a short, ranked shortlist worth a person's time — it is not a final judgment.</p>
+
+    <h3>Before acting, a human must check</h3>
+    <ul>
+      <li>Whether the flagged decline has an obvious external cause — seasonality, a known SERP change, a recent site migration — that a refresh won't fix.</li>
+      <li>Whether the page is already scheduled for retirement or consolidation.</li>
+      <li>Whether <code>days_since_last_update</code> reflects a genuine content edit, not just a CMS metadata touch.</li>
+    </ul>
+
+    <h3>Never automate</h3>
+    <p>Actual content rewriting or publishing, page deletion or merging, or any action taken solely from a model score without a human reading the page first. This tool ranks and flags — it does not decide or execute.</p>
+
+    <h3>Retrain or re-review when</h3>
+    <ul>
+      <li>The gap between model and baseline Precision@50 shrinks or reverses on new data.</li>
+      <li>Input feature distributions drift meaningfully.</li>
+      <li>More than one quarter has passed since the last retrain.</li>
+      <li>A new client with a very different content profile onboards.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>7. Reproducibility</h2>
+    <p>All notebooks, data contracts, and metrics referenced in this paper are available in the project repository.</p>
+    <ul class="repro-list">
+      <li><span>Research question &amp; lane framing</span> <code>w01_research_question.ipynb</code></li>
+      <li><span>ML task framing</span> <code>w02_ml_task_framing.ipynb</code></li>
+      <li><span>Data contract &amp; leakage trap</span> <code>w03_data_contract.ipynb</code></li>
+      <li><span>Baseline rule &amp; signal audit</span> <code>w04_baseline_score.ipynb</code></li>
+      <li><span>Model training &amp; comparison</span> <code>w05_model.ipynb</code></li>
+      <li><span>Validation &amp; claim audit</span> <code>w06_validation_audit.ipynb</code></li>
+      <li><span>Action playbook &amp; exports</span> <code>w07_action_playbook.ipynb</code></li>
+      <li><span>End-to-end capstone pipeline</span> <code>capstone.ipynb</code></li>
+    </ul>
+    <p style="margin-top:16px; font-size:14.5px;">Full repository: <a href="https://github.com/sarmad341/flyrank-internship-01">github.com/sarmad341/flyrank-internship-01</a></p>
+  </section>
+
+  <footer>
+    Built on the FlyRank ML Internship dataset. Data source: <a href="https://flyrank.ai">flyrank.ai</a>
+  </footer>
+
+</div>
+</body>
+</html>
